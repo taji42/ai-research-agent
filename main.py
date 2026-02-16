@@ -1,25 +1,31 @@
 import os
-from dotenv import load_dotenv
-from google import genai
+from planner import create_research_plan
 
-# Load environment variables from .env
-load_dotenv()
+def main():
+    print("--- 🤖 Autonomous Research Agent ---")
+    goal = input("What is your research goal? ")
+    
+    print(f"\n[1] Planning strategy for: {goal}...")
+    plan = create_research_plan(goal)
+    queries = plan.get("search_queries", [])
+    
+    memory = []
+    
+    print(f"\n[2] Execution: Found {len(queries)} tasks.")
+    for i, query in enumerate(queries, 1):
+        print(f"\n🚀 Running Task {i}/{len(queries)}: {query}")
+        
+        # This simulates a tool/web search
+        result = f"Summary data for '{query}'" 
+        
+        # Store in memory
+        memory.append({"query": query, "result": result})
+        print(f"✅ Saved to memory.")
 
-# Get API key from .env file
-api_key = os.getenv("GEMINI_API_KEY")
+    print("\n--- 🏁 Research Complete ---")
+    print(f"The agent processed {len(memory)} tasks successfully.")
+    for entry in memory:
+        print(f"- {entry['query']}")
 
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found. Make sure your .env file is set correctly.")
-
-# Create Gemini client
-client = genai.Client(api_key=api_key)
-
-# Send a test prompt
-response = client.models.generate_content(
-    model="gemini-2.0-flash",
-    contents="Say hello like a pirate."
-)
-
-# Print response
-print(response.text)
-
+if __name__ == "__main__":
+    main()

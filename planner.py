@@ -3,54 +3,40 @@ import json
 from dotenv import load_dotenv
 from google import genai
 
-# 1. Load the environment variables from .env
+# Load environment variables
 load_dotenv()
 
-# 2. Initialize the Gemini Client with your key
-# The client automatically looks for the key in your .env
+# Initialize Gemini Client
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def create_research_plan(goal: str):
     """
-    Takes a research goal and asks Gemini 2.0 to create 
-    a list of search queries.
+    Asks Gemini to create 3 search queries for a goal.
     """
-    
     prompt = f"""
-    You are a Research Planner Agent. 
-    Your goal is: "{goal}"
-    
-    Create exactly 3 specific search queries that will help gather 
-    the most important information for this goal.
-    
-    Return the result in ONLY this JSON format:
+    You are a Research Planner. Goal: "{goal}"
+    Create 3 specific search queries to gather info for this goal.
+    Return ONLY this JSON:
     {{
         "search_queries": ["query 1", "query 2", "query 3"]
     }}
     """
     
     try:
-        # 3. Call the modern Gemini 2.0 Flash model
+        # Using 1.5-flash-8b to avoid the 'limit: 0' quota error
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-flash-8b",
             contents=prompt
         )
         
-        # 4. Clean up the response text
-        # Sometimes AI adds ```json ... ``` tags which we must remove
+        # Clean markdown tags if present
         raw_text = response.text
         clean_text = raw_text.replace("```json", "").replace("```", "").strip()
         
-        # 5. Convert string to a real Python dictionary
-        plan = json.loads(clean_text)
-        return plan
-
+        return json.loads(clean_text)
     except Exception as e:
-        print(f"Error in Planner: {e}")
-        # Return a fallback plan so the project doesn't crash
-        return {"search_queries": [f"basic info on {goal}", "latest news", "key details"]}
+        print(f"Planner Error: {e}")
+        return {"search_queries": [f"research {goal}", "latest trends", "overview"]}
 
 if __name__ == "__main__":
-    # Test it directly
-    test_goal = "Build a PC in 2026"
-    print(create_research_plan(test_goal))
+    print(create_research_plan("Test Goal"))
