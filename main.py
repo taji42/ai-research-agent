@@ -5,6 +5,10 @@ def main():
     print("--- 🤖 Autonomous Research Agent ---")
     goal = input("What is your research goal? ")
     
+    if not goal:
+        print("Goal cannot be empty.")
+        return
+
     print(f"\n[1] Planning strategy for: {goal}...")
     plan = create_research_plan(goal)
     queries = plan.get("search_queries", [])
@@ -15,15 +19,15 @@ def main():
     for i, query in enumerate(queries, 1):
         print(f"\n🚀 Running Task {i}/{len(queries)}: {query}")
         
-        # This simulates a tool/web search
+        # In a full agent, this would call a Search Tool
         result = f"Summary data for '{query}'" 
         
-        # Store in memory
+        # Store progress in memory
         memory.append({"query": query, "result": result})
         print(f"✅ Saved to memory.")
 
     print("\n--- 🏁 Research Complete ---")
-    print(f"The agent processed {len(memory)} tasks successfully.")
+    print(f"The agent successfully processed {len(memory)} tasks.")
     for entry in memory:
         print(f"- {entry['query']}")
 
