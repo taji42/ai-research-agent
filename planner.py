@@ -10,46 +10,30 @@ def create_research_plan(goal: str):
     url = "https://openrouter.ai/api/v1/chat/completions"
     
     prompt = f"""
-    You are a Research Planner. Goal: "{goal}"
-    Create 3 specific search queries to gather info for this goal.
-    Return ONLY this JSON structure:
-    {{
-        "search_queries": ["query 1", "query 2", "query 3"]
-    }}
+    Return ONLY a JSON object for the goal: "{goal}".
+    Format: {{"search_queries": ["q1", "q2", "q3"]}}
     """
     
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/taji42/ai-research-agent", # Required by some free models
-        "X-Title": "AI Research Agent"
+        "HTTP-Referer": "https://github.com/taji42/ai-research-agent", 
     }
     
     data = {
-        "model": "deepseek/deepseek-r1:free", # Using DeepSeek R1 (Very stable free model)
+        "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
         "messages": [{"role": "user", "content": prompt}]
     }
     
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, headers=headers, json=data)
         response.raise_for_status() 
+        content = response.json()['choices'][0]['message']['content']
         
-        result = response.json()
-        content = result['choices'][0]['message']['content']
-        
-        # Clean up thinking/markdown blocks
-        clean_text = content.split('}') [0] + '}' # Keeps only the JSON part
-        if "{" not in clean_text:
-             clean_text = content.replace("```json", "").replace("```", "").strip()
-             
-        return json.loads(clean_text)
+        # Strip potential markdown formatting
+        clean_json = content.replace("```json", "").replace("```", "").strip()
+        return json.loads(clean_json)
         
     except Exception as e:
-        print(f"AI Logic: {e}. Using fallback queries.")
-        return {
-            "search_queries": [
-                f"latest developments in {goal}",
-                f"top 10 {goal} trends",
-                f"expert guide on {goal}"
-            ]
-        }
+        print(f"Agent Logic: AI is busy. Using fallback. ({e})")
+        return {"search_queries": [f"research {goal}", "latest trends", "overview"]}
