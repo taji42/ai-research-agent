@@ -6,9 +6,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def create_research_plan(goal: str):
-    """
-    Calls Gemini via OpenRouter to bypass regional location blocks.
-    """
     api_key = os.getenv("OPENROUTER_API_KEY")
     url = "https://openrouter.ai/api/v1/chat/completions"
     
@@ -23,31 +20,36 @@ def create_research_plan(goal: str):
     
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/taji42/ai-research-agent", # Required by some free models
+        "X-Title": "AI Research Agent"
     }
     
     data = {
-        "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
+        "model": "deepseek/deepseek-r1:free", # Using DeepSeek R1 (Very stable free model)
         "messages": [{"role": "user", "content": prompt}]
     }
     
     try:
         response = requests.post(url, headers=headers, data=json.dumps(data))
-        response.raise_for_status() # Check for errors
+        response.raise_for_status() 
         
         result = response.json()
         content = result['choices'][0]['message']['content']
         
-        # Clean up any potential markdown formatting from the AI
-        clean_text = content.replace("```json", "").replace("```", "").strip()
+        # Clean up thinking/markdown blocks
+        clean_text = content.split('}') [0] + '}' # Keeps only the JSON part
+        if "{" not in clean_text:
+             clean_text = content.replace("```json", "").replace("```", "").strip()
+             
         return json.loads(clean_text)
         
     except Exception as e:
-        print(f"Agent Logic: AI is busy or blocked. Using system defaults. ({e})")
+        print(f"AI Logic: {e}. Using fallback queries.")
         return {
             "search_queries": [
                 f"latest developments in {goal}",
-                f"business impact of {goal} 2026",
-                f"implementation guide for {goal}"
+                f"top 10 {goal} trends",
+                f"expert guide on {goal}"
             ]
         }
