@@ -1,45 +1,53 @@
 import os
 import json
+import requests
 from dotenv import load_dotenv
-from google import genai
 
-# Load environment variables from .env
 load_dotenv()
-
-# Initialize Gemini Client with the new 2026 SDK
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def create_research_plan(goal: str):
     """
-    Uses Gemini 2.5 Flash-Lite to create search queries.
+    Calls Gemini via OpenRouter to bypass regional location blocks.
     """
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    
     prompt = f"""
     You are a Research Planner. Goal: "{goal}"
     Create 3 specific search queries to gather info for this goal.
-    Return ONLY this JSON:
+    Return ONLY this JSON structure:
     {{
         "search_queries": ["query 1", "query 2", "query 3"]
     }}
     """
     
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
+        "messages": [{"role": "user", "content": prompt}]
+    }
+    
     try:
-        # gemini-2.5-flash-lite is the current stable free-tier model
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt
-        )
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response.raise_for_status() # Check for errors
         
-        # Remove markdown code blocks if the AI includes them
-        raw_text = response.text
-        clean_text = raw_text.replace("```json", "").replace("```", "").strip()
+        result = response.json()
+        content = result['choices'][0]['message']['content']
         
+        # Clean up any potential markdown formatting from the AI
+        clean_text = content.replace("```json", "").replace("```", "").strip()
         return json.loads(clean_text)
         
     except Exception as e:
-        print(f"Planner Error: {e}")
-        # Fallback queries if the API fails
-        return {"search_queries": [f"research {goal}", "latest trends", "overview"]}
-
-if __name__ == "__main__":
-    # Test the planner alone
-    print(create_research_plan("Test Goal"))
+        print(f"Agent Logic: AI is busy or blocked. Using system defaults. ({e})")
+        return {
+            "search_queries": [
+                f"latest developments in {goal}",
+                f"business impact of {goal} 2026",
+                f"implementation guide for {goal}"
+            ]
+        }
